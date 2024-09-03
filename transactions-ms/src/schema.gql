@@ -1,0 +1,51 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type TransactionTypeName {
+  name: String!
+}
+
+type TransactionStatusName {
+  name: String!
+}
+
+type TransactionType {
+  id: ID!
+  externalId: String
+  accountExternalIdDebit: String!
+  accountExternalIdCredit: String!
+  tranferTypeId: Float!
+  transactionStatusId: Float!
+  transactionValue: String!
+  createdAt: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type OutputTransactionType {
+  transactionExternalId: String!
+  transactionType: TransactionTypeName!
+  transactionStatus: TransactionStatusName!
+  value: Float!
+  createdAt: DateTime!
+}
+
+type Query {
+  getAllTransactions: [TransactionType!]!
+  getTransactionByExternalId(externalId: String!): OutputTransactionType!
+}
+
+type Mutation {
+  createTransaction(createTransactionDto: CreateTransactionDto!): TransactionType!
+}
+
+input CreateTransactionDto {
+  accountExternalIdDebit: String!
+  accountExternalIdCredit: String!
+  tranferTypeId: Float!
+  value: Float!
+}

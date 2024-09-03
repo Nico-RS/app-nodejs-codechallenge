@@ -1,82 +1,106 @@
-# Yape Code Challenge :rocket:
+# Configuration Guide
 
-Our code challenge will let you marvel us with your Jedi coding skills :smile:. 
+## 1. Run the Dockerfile
 
-Don't forget that the proper way to submit your work is to fork the repo and create a PR :wink: ... have fun !!
+To get a MySQL database and an Apache Kafka instance, run the Dockerfile. Make sure you have the `docker-compose.yml` file configured to start both services.
 
-- [Problem](#problem)
-- [Tech Stack](#tech_stack)
-- [Send us your challenge](#send_us_your_challenge)
+![Docker](./config-images/docker.png)
 
-# Problem
+## 2. Connect to the Database and Run Migrations
 
-Every time a financial transaction is created it must be validated by our anti-fraud microservice and then the same service sends a message back to update the transaction status.
-For now, we have only three transaction statuses:
+Connect to the MySQL database and run the migrations located in the `/migrations` folder in date order to create the necessary tables and structure.
 
-<ol>
-  <li>pending</li>
-  <li>approved</li>
-  <li>rejected</li>  
-</ol>
+## 3. Create Topics in Kafka
 
-Every transaction with a value greater than 1000 should be rejected.
+Create the Kafka topics that we will use. In this case, they will be the following:
 
-```mermaid
-  flowchart LR
-    Transaction -- Save Transaction with pending Status --> transactionDatabase[(Database)]
-    Transaction --Send transaction Created event--> Anti-Fraud
-    Anti-Fraud -- Send transaction Status Approved event--> Transaction
-    Anti-Fraud -- Send transaction Status Rejected event--> Transaction
-    Transaction -- Update transaction Status event--> transactionDatabase[(Database)]
+- `transaction-created`
+- `transaction-approved`
+- `transaction-rejected`
+
+The commands to create the topics are:
+
+```bash
+docker exec -it <kafka-container-id> /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic transaction-created
+docker exec -it <kafka-container-id> /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic transaction-approved
+docker exec -it <kafka-container-id> /opt/kafka/bin/kafka-topics.sh --create --zookeeper zookeeper:2181 --replication-factor 1 --partitions 1 --topic transaction-rejected
 ```
 
-# Tech Stack
+## 4. Run Microservices
 
-<ol>
-  <li>Node. You can use any framework you want (i.e. Nestjs with an ORM like TypeOrm or Prisma) </li>
-  <li>Any database</li>
-  <li>Kafka</li>    
-</ol>
+You will see two microservices:
 
-We do provide a `Dockerfile` to help you get started with a dev environment.
+- `fraud-detection-ms`
+- `transactions-ms`
 
-You must have two resources:
+For `fraud-detection-ms`, follow these steps:
 
-1. Resource to create a transaction that must containt:
+1. Go to the microservice folder.
+2. Create a file in that location named `.env` with the following variables:
 
-```json
-{
-  "accountExternalIdDebit": "Guid",
-  "accountExternalIdCredit": "Guid",
-  "tranferTypeId": 1,
-  "value": 120
-}
+  ```env
+  #Aplication
+  PORT=3001
+  X_APPLICATION_ID=fraud-detection-ms
+
+  # Kafka
+  KAFKA_BROKER=localhost:9092
+  KAFKA_CLIENT_ID=anti-fraud-client
+  KAFKA_GROUP_ID=anti-fraud-group
+  ```
+
+4. Install the dependencies with the command:
+   ```bash
+   npm i
+   ```
+
+5. Run the project:
+   ```bash
+   npm run start
+   ```
+
+For `transactions-ms`, follow these steps:
+
+1. Go to the microservice folder.
+2. Create a file in that location named .env with the following variables:
+
+```env
+# DB
+DB_HOST=127.0.0.1
+DB_PORT=3307
+DB_USER=user
+DB_PASSWORD=basededatos
+DB_NAME=transactions
+DB_SYNC=false
+
+# Aplication
+PORT=3000
+X_APPLICATION_ID=transactions-ms
+
+# Kafka
+KAFKA_BROKER=localhost:9092
+KAFKA_CLIENT_ID=transactions-ms
+KAFKA_GROUP_ID=transactions-ms
 ```
 
-2. Resource to retrieve a transaction
+4. Install the dependencies with the command:
+   ```bash
+   npm i
+   ```
 
-```json
-{
-  "transactionExternalId": "Guid",
-  "transactionType": {
-    "name": ""
-  },
-  "transactionStatus": {
-    "name": ""
-  },
-  "value": 120,
-  "createdAt": "Date"
-}
-```
+5. Run the project:
+   ```bash
+   npm run start
+   ```
 
-## Optional
+## 5. Access the Apollo Interface to Perform Queries and Mutations
 
-You can use any approach to store transaction data but you should consider that we may deal with high volume scenarios where we have a huge amount of writes and reads for the same data at the same time. How would you tackle this requirement?
+Go to http://localhost:3000/graphql to access the Apollo interface.
 
-You can use Graphql;
+![GraphQL](./config-images/graphql.png)
 
-# Send us your challenge
+## 6. Access the Documentation
 
-When you finish your challenge, after forking a repository, you **must** open a pull request to our repository. There are no limitations to the implementation, you can follow the programming paradigm, modularization, and style that you feel is the most appropriate solution.
+Go to http://localhost:3000/api to access the application documentation.
 
-If you have any questions, please let us know.
+![Swagger Documentation](./config-images/swagger-doc.png)
